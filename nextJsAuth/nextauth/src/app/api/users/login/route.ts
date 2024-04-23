@@ -1,68 +1,54 @@
 import { connect } from "@/dbConfig/dbConfig";
 import User from "@/models/userModel";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { NextRequest, NextResponse } from "next/server";
+import bcryptjs from "bcryptjs";
+import jwt from "jsonwebtoken";
 
-// Connect to the database
 connect();
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the request body
     const reqBody = await request.json();
     const { email, password } = reqBody;
     console.log(reqBody);
 
-    // Find the user by email
+    //check if user exists
     const user = await User.findOne({ email });
-
-    // If user doesn't exist, return an error
     if (!user) {
       return NextResponse.json(
         { error: "User does not exist" },
         { status: 400 }
       );
     }
-    console.log("user exists", user);
+    console.log("user exists");
 
-    // Check if the provided password matches the user's password
-    const validPassword = await bcrypt.compare(password, user.password);
-
-    // If the password is invalid, return an error
+    //check if password is correct
+    const validPassword = await bcryptjs.compare(password, user.password);
     if (!validPassword) {
-      return NextResponse.json(
-        { error: "Check your credentials" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid password" }, { status: 400 });
     }
+    console.log(user);
 
-    // Create the token data
+    //create token data
     const tokenData = {
       id: user._id,
       username: user.username,
       email: user.email,
     };
+    //create token
+    const token = await jwt.sign(tokenData, process.env.TOKEN_SECRET!, {
+      expiresIn: "1d",
+    });
 
-    // Generate the JWT token
-    const token = await jwt.sign(tokenData, process.env.TOKEN_SECRET || 'default_secret', {expiresIn: '1d'});
-
-    // Create the response
-    
     const response = NextResponse.json({
-      
-      message: "Logged In Success",
-      success: true
-    })
-
-    // Set the token as a cookie
-    response.cookies.set("token", token,{
-      httpOnly: true
-    })
-    return response
-
+      message: "Login successful",
+      success: true,
+    });
+    response.cookies.set("token", token, {
+      httpOnly: true,
+    });
+    return response;
   } catch (error: any) {
-    // Handle any errors
-    return NextResponse.json({ error }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
