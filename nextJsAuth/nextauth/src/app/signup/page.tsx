@@ -24,7 +24,7 @@ export default function SignUpPage() {
       setLoading(true)
       
       const response = await axios.post(
-        "http://localhost:3000/api/auth/signup",
+        "/api/users/signup",
         user
       );
       console.log(response.data);
@@ -35,7 +35,9 @@ export default function SignUpPage() {
 
     } catch (error: any) {
       console.log("SignUp Failed", error);
-      // toast.error(error.message);
+      toast.error(error.response.data.message);
+      // setLoading(false)
+      // setButtonDisabled(false)
     }
   }
 
